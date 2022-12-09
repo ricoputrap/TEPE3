@@ -1,6 +1,7 @@
 import java.io.*;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedList;
+import java.util.Stack;
 import java.util.StringTokenizer;
 
 public class TP3 {
@@ -64,20 +65,31 @@ public class TP3 {
 
     static void kabur() {  
         int nomorPosAsal = in.nextInt();
-        int nomorPosTujuan = in.nextInt(); 
+        int nomorPosTujuanAkhir = in.nextInt(); 
         
         ArrayList<Integer> daftarNoPosTerkunjungi = new ArrayList<Integer>();
-        kunjungi(nomorPosAsal, nomorPosTujuan, daftarNoPosTerkunjungi, Integer.MAX_VALUE);
+        ArrayList<Stack<Edge>> daftarJalur = new ArrayList<Stack<Edge>>();
+        // kunjungi(nomorPosAsal, nomorPosTujuan, daftarNoPosTerkunjungi, Integer.MAX_VALUE);
 
         // 1. Cari seluruh jalur yang tersedia dari pos F ke pos E -> daftarJalur
+        // sebuah jalur adalah sekumpulan terowongan -> ArrayList<Edge> jalur
+        // seluruh jalur -> ArrayList<ArrayList<Edge>> semuaJalur
+        ArrayList<Stack<Edge>> semuaJalur = getSemuaJalur(nomorPosAsal, nomorPosTujuanAkhir, daftarNoPosTerkunjungi, daftarJalur);
+        System.out.println("semuaJalur: " + semuaJalur);
     
             // cari jalur2nya
             // add ke dalam daftar jalur
        // sistemTerowongan.getPosByNomor(posAsal).daftarTerowongan.get(posTujuan)
+
         // 2. Dapatkan ukuran terowongan terkecil di setiap jalur -> daftarUkuranTerkecil
+        ArrayList<Integer> daftarUkuranTerowonganTerkecilDiSetiapJalur = new ArrayList<Integer>();
+
         // 3. Dapatkan ukuran terowongan terbesar di dalam `daftarUkuranTerkecil` -> ukuranTerowonganTerbesar
+        int jumlahLogistikDapatDibawaTerbanyak = 0;
+
         // 4. Return `ukuranTerowonganTerbesar` sebagai nilai untuk jumlah logistik terbanyak
         //     yang dapat dibawa kabur dari pos F ke pos E
+        System.out.println(jumlahLogistikDapatDibawaTerbanyak);
     }
 
     static void simulasi() {  
@@ -92,9 +104,6 @@ public class TP3 {
         int posV1 = in.nextInt();
         int posV2 = in.nextInt();
         int posV3 = in.nextInt();
-
-        ArrayList<Integer> daftarX = new ArrayList<Integer>();
-        kunjungi(1, 10, daftarX, 0);
     }
 
     // rekursif
@@ -126,6 +135,7 @@ public class TP3 {
             }
 
             // Membandingkan ukuran terowongan ini dengan yang sudah dilalui -> ambil yg terkecil 
+            int ukuranTerowonganSekarang = terowonganSekarang.getLuas();
             int ukuranTerowonganTerkecil = ukuranTerowonganTerkecilSejauhIni;
             if (ukuranTerowonganSekarang < ukuranTerowonganTerkecil)
                 ukuranTerowonganTerkecil = ukuranTerowonganSekarang;
@@ -148,7 +158,106 @@ public class TP3 {
 
         return ukuranTerowonganTerbesar;
     }
+    
+    /**
+     * Mendapatkan daftar semua jalur yang dapat dilalui dari pos sekarang hingga ke pos tujuan akhir
+     * @param noPosSekarang nomor pos saat ini di mana penyusup berada
+     * @param noPosTujuanAkhir nomor pos yang dituju
+     * @param daftarNoPosTerkunjungi daftar nomor pos yang telah dikunjungi sebelum tiba di pos sekarang
+     * @param daftarJalur daftar jalur
+     * @return
+     */
+    static ArrayList<Stack<Edge>> getSemuaJalur(
+        int noPosSekarang,
+        int noPosTujuanAkhir,
+        ArrayList<Integer> daftarNoPosTerkunjungi,
+        ArrayList<Stack<Edge>> daftarJalur
+    ) {
+        System.out.println("====== MASUK POS " + noPosSekarang + " =====");
+        // base case
+        if (noPosSekarang == noPosTujuanAkhir) {
+            System.out.println("Riwayat kunjungan pos: " + daftarNoPosTerkunjungi);
+            System.out.println("Seluruh jalur: " + daftarJalur);
+            System.out.println("===== POS " + noPosSekarang + " SELESAI!!!");
+            return daftarJalur;
+        }
 
+        // Update visited pos
+        ArrayList<Integer> daftarNoPosTerkunjungiSekarang = new ArrayList<Integer>(daftarNoPosTerkunjungi);
+        daftarNoPosTerkunjungiSekarang.add(noPosSekarang);
+        System.out.println("Daftar pos terkunjungi: " + daftarNoPosTerkunjungiSekarang);
+
+        // Mendapatkan daftar terowongan milik pos sekarang
+        Vertex posSekarang = sistemTerowongan.getPosByNomor(noPosSekarang);
+        ArrayList<Edge> daftarTerowonganPosSekarang = posSekarang.getDaftarTerowongan();
+        System.out.println("Daftar terowongan: " + daftarTerowonganPosSekarang);
+
+        ArrayList<Stack<Edge>> daftarJalurSekarang = new ArrayList<Stack<Edge>>(daftarJalur);
+
+        // kunjungi setiap terowongan
+        for (int i = 0; i < daftarTerowonganPosSekarang.size(); i++) {
+            Edge terowongan = daftarTerowonganPosSekarang.get(i);
+            int noPosTujuanTerowongan = terowongan.getNomorPosTujuan();
+
+            System.out.println("NEMU TEROWONGAN dari POS " + noPosSekarang + " ke POS " + noPosTujuanTerowongan);
+            System.out.println("DAFTAR JALUR SEBELUMNYA: " + daftarJalurSekarang);
+
+
+            // skip (jangan melalui terowongan ini) jika pos tujuannya sudah pernah dikunjungi
+            if (daftarNoPosTerkunjungiSekarang.contains(noPosTujuanTerowongan)) {
+                System.out.println("STOP! POS " + noPosTujuanTerowongan + " sudah pernah dikunjungi.");
+                continue;
+            }
+
+            // mencari sebuah jalur (sekumpulan terowongan) yang sebelumnya telah dilalui
+            // hingga bisa berada di pos sekarang
+            Stack<Edge> jalur = null;
+            int indexJalur = -1;
+            
+            for (int j = 0; j < daftarJalurSekarang.size(); j++) {
+                if (daftarJalurSekarang.get(j).peek().getNomorPosTujuan() == noPosSekarang) {
+                    jalur = daftarJalurSekarang.get(j);
+                    indexJalur = j;
+                    break;
+                }
+            }
+
+            // buat objek jalur jika terowongan ini adalah 
+            // terowongan pertama yang dapat dilalui
+            if (jalur == null) {
+                jalur = new Stack<Edge>();
+            }
+            
+            // tambahkan terowongan ini ke jalur yang dapat dilalui menuju pos tujuan akhir
+            jalur.add(terowongan);
+
+            // update jalur ini ke dalam daftar jalur
+            if (indexJalur == -1) {
+                daftarJalurSekarang.add(jalur);
+            }
+            else {
+                daftarJalurSekarang.set(indexJalur, jalur);
+            }
+
+            System.out.println("JALUR: " + jalur);
+            System.out.println("DAFTAR JALU SEKARARANG: " + daftarJalurSekarang);
+
+            daftarJalurSekarang = getSemuaJalur(noPosTujuanTerowongan, noPosTujuanAkhir, daftarNoPosTerkunjungiSekarang, daftarJalurSekarang);
+            System.out.println("Daftar jalur setelah penelusuran dari pos " + noPosSekarang + ": " + daftarJalurSekarang);
+
+            System.out.println("====== SAATNYA CEK TEROWONGAN SELANJUTNYA ======");
+        }
+
+        // semuaJalur: [
+        //     [Terowongan menuju pos 1, Terowongan menuju pos 3],
+        //     [Terowongan menuju pos 4, Terowongan menuju pos 3],
+        //     [Terowongan menuju pos 4, Terowongan menuju pos 1, Terowongan menuju pos 3],
+        //     [Terowongan menuju pos 3]
+        // ]
+
+        return daftarJalurSekarang;
+    }
+    
     // Edge = Terowongan antarpos
     static class Edge {
         private Vertex posTujuan;
@@ -167,6 +276,11 @@ public class TP3 {
 
         public int getLuas() {
             return this.luas;
+        }
+
+        @Override
+        public String toString() {
+            return "Terowongan menuju pos " + posTujuan.getNomorPos();
         }
     }
 
@@ -229,19 +343,20 @@ public class TP3 {
             // update posAsal dan posTujuan ke dalam `daftarPos`
             this.daftarPos.set(nomorPosAsal - 1, posAsal);
             this.daftarPos.set(nomorPosTujuan - 1, posTujuan);
+        }
 
-            // mendapatkan sebuah objek pos (Vertex)
-            // yang telah terdaftar dalam sistem terowongan bawah tanah (Graph)
-            // berdasarkan nomornya
-            public Vertex getPosByNomor(int nomorPos) {
-                return this.daftarPos.get(nomorPos - 1);
-            }
+        // mendapatkan sebuah objek pos (Vertex)
+        // yang telah terdaftar dalam sistem terowongan bawah tanah (Graph)
+        // berdasarkan nomornya
+        public Vertex getPosByNomor(int nomorPos) {
+            return this.daftarPos.get(nomorPos - 1);
+        }
 
-            public void cetakDaftarPos() {
-                for (int i = 0; i < this.daftarPos.size(); i++) {
-                  System.out.println(this.daftarPos.get(i));
-                }
+        public void cetakDaftarPos() {
+            for (int i = 0; i < this.daftarPos.size(); i++) {
+                System.out.println(this.daftarPos.get(i));
             }
+        }
     }
 
 
